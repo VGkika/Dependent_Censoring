@@ -19,8 +19,8 @@ nt = length(tt)
 # Set parameters for all model scenarios
 
 # baseline covariates
-treat = sample(c(0, 1), size = N, replace = T, prob = c(0.5, 0.5)) # not treated (treat = 0)
-                                                                   # treated (treat = 1)
+treat = sample(c(0, 1), size = N, replace = T, prob = c(0.5, 0.5)) # not treated (treat = 0), treated (treat = 1)
+
 age = rnorm(N, 40, 10) # age
 ageZ = (rnorm(N, 40, 10) - 40)/10 # rescaling: standardized age
   
@@ -44,12 +44,9 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
   
   for (ni in 1:length(sample_size)){
       n = sample_size[ni]
-
-      # censoring percentage for each MC simulation at each misspecification case
-      censoring = numeric(M)
       
-      # maximum time of event/censoring
-      max_t = numeric(M)
+      censoring = numeric(M) # censoring percentage for each MC simulation at each misspecification case
+      max_t = numeric(M) # maximum time of event/censoring
       
       # survival curve estimates at each time point for each MC simulation 
       KM = matrix(NA, nrow = M, ncol = nt)
@@ -60,19 +57,19 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       
       # performance metrics for each MC simulation 
       KM_metrics = matrix(NA, nrow = M, ncol = 3)
-      colnames(KM_metrics) = c("Absolute Bias", #"Variance", 
+      colnames(KM_metrics) = c("Absolute Bias", 
                                "RMSE", "Area Between Curves")
       IPCW_metrics = matrix(NA, nrow = M, ncol = 3)
-      colnames(IPCW_metrics) = c("Absolute Bias", #"Variance", 
+      colnames(IPCW_metrics) = c("Absolute Bias", 
                                  "RMSE", "Area Between Curves")
       GC_metrics = matrix(NA, nrow = M, ncol = 3)
-      colnames(GC_metrics) = c("Absolute Bias", #"Variance", 
+      colnames(GC_metrics) = c("Absolute Bias", 
                                "RMSE", "Area Between Curves") 
       DR_metrics_AIPCW = matrix(NA, nrow = M, ncol = 3)
-      colnames(DR_metrics_AIPCW) = c("Absolute Bias", #"Variance",
+      colnames(DR_metrics_AIPCW) = c("Absolute Bias", 
                                      "RMSE", "Area Between Curves")
       DR_metrics_WGC = matrix(NA, nrow = M, ncol = 3)
-      colnames(DR_metrics_WGC) = c("Absolute Bias", #"Variance", 
+      colnames(DR_metrics_WGC) = c("Absolute Bias",
                                    "RMSE", "Area Between Curves")
       
       skip = 0
@@ -311,7 +308,6 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
         DR_df[which(DR_df$pi_stab == 0 | is.na(DR_df$pi_stab)), "pi_stab"] = 10e-50
         
         # Compute the AIPCW curve in a grouped manner
-        
         DR_curve_df = DR_df |>
             group_by(time) |>
             summarize(DRcurve = mean((((dC == 0) & (d == 0) * Z) / pi_stab) - (((dC == 0) / pi_stab) - 1) * mu * Z))
@@ -355,7 +351,7 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       final_metrics = cbind(KM_Metrics_final, IPCW_Metrics_final, GC_Metrics_final, 
                             DR_Metrics_AIPCW_final, DR_Metrics_WGC_final)
       final_metrics = as.data.frame(final_metrics)
-      colnames(final_metrics) = c("KM", "IPCW", "G-C", "AIPCW", "WGC")
+      colnames(final_metrics) = c("KM", "IPCW", "GC", "AIPCW", "WGC")
       
       # output
       out_n = list('censoring_percentage' = censoring_perc,
