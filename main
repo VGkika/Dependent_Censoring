@@ -7,7 +7,6 @@ options(scipen = 999)
 options(error = NULL)
 set.seed(2024)
 
-
 # Set parameters for all MC simulations
 
 M = 200 # MC simulations
