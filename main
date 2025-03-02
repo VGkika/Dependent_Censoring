@@ -514,3 +514,4 @@ for (i in 1:nt){
 }
 
 out_s4b = main(true_data, true_surv_integr)
+```
