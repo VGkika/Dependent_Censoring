@@ -4,4 +4,4 @@ This study was carried out during her MSc thesis at Leiden University Medical Ce
 
 **main:** generates the data in all scenarios, implements methods and outputs the performance metrics and the estimated curves \
 **results:** performance metrics and plots of all scenarios \
-**true_survival_curve:** includes the two approaches of obtaining the true underlying survival curve of a population and the comparisons
+**true_survival_curve:** includes two approaches of obtaining the true underlying survival curve of a population and the comparisons
