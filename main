@@ -1,4 +1,4 @@
-```
+``` r
 library(survival)
 library(ipw)
 library(dplyr) |> suppressPackageStartupMessages()
