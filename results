@@ -1,0 +1,759 @@
+# set up
+library(ggplot2)
+options(scipen = 999)
+
+tt = seq(0, 200, by = 0.1)
+nt = length(tt)
+# event and censoring coefficients
+lx = 0.05; beta = c(0.5, 0.8) 
+
+# Scenario 1 
+
+## True Curve
+
+integrand = function(t, z1, z2){
+  exp(-lx * t * exp(beta[1]*z1 + beta[2]*z2)) * dnorm(z2)
+}
+
+true_surv_integr = numeric(nt)
+for (i in 1:nt){
+  true_surv_integr[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
+                               integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
+}
+
+load("results_s1.Rdata")
+
+s1_200 = out_s1$`n = 200`
+s1_500 = out_s1$`n = 500`
+s1_1000 = out_s1$`n = 1000`
+
+## Performance Metrics
+round(s1_200$performance_metrics, digits = 4)
+round(s1_500$performance_metrics, digits = 4)
+round(s1_1000$performance_metrics, digits = 4)
+
+## Plots
+
+### I) GC
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 1: Correctly Specified Models (n = 200)")
+lines(tt, s1_200$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s1_200$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s1_200$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation"),
+       col = c("black", "red", "darkgreen", "blue"), 
+       lwd = 2, lty = c(1, 2, 4, 3))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 1: Correctly Specified Models (n = 500)")
+lines(tt, s1_500$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s1_500$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s1_500$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation"),
+       col = c("black", "red", "darkgreen", "blue"), 
+       lwd = 2, lty = c(1, 2, 4, 3))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 1: Correctly Specified Models (n = 1000)")
+lines(tt, s1_1000$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s1_1000$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s1_1000$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation"),
+       col = c("black", "red", "darkgreen", "blue"), 
+       lwd = 2, lty = c(1, 2, 4, 3))
+
+### II) DR
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 1: Correctly Specified Models (n = 200)")
+lines(tt, s1_200$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s1_200$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s1_200$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s1_200$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s1_200$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 1: Correctly Specified Models (n = 500)")
+lines(tt, s1_500$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s1_500$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s1_500$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s1_500$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s1_500$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 1: Correctly Specified Models (n = 1000)")
+lines(tt, s1_1000$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s1_1000$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s1_1000$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s1_1000$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s1_1000$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+# Scenario 2
+
+## True Curve
+
+integrand = function(t, z1, z2){
+  exp(-0.03 * t * exp(beta[1]*z1 + beta[2]*z2)) * dnorm(z2)
+}
+
+true_surv_integr = numeric(nt)
+for (i in 1:nt){
+  true_surv_integr[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
+                               integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
+}
+
+load("results_s2.Rdata")
+
+s2_200 = out_s2$`n = 200`
+s2_500 = out_s2$`n = 500`
+s2_1000 = out_s2$`n = 1000`
+
+## Performance Metrics
+round(s2_200$performance_metrics, digits = 4)
+round(s2_500$performance_metrics, digits = 4)
+round(s2_1000$performance_metrics, digits = 4)
+
+## Plots
+
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 2: Misspecify Censoring Model (n = 200)")
+lines(tt, s2_200$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s2_200$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
+lines(tt, s2_200$GC_curve, type = "s", col = "blue", lwd = 4, lty = 3)
+lines(tt, s2_200$DR_StabW, type = "s", col = "purple", lwd = 3, lty = 6)
+lines(tt, s2_200$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 2: Misspecify Censoring Model (n = 500)")
+lines(tt, s2_500$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s2_500$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
+lines(tt, s2_500$GC_curve, type = "s", col = "blue", lwd = 4, lty = 3)
+lines(tt, s2_500$DR_StabW, type = "s", col = "purple", lwd = 3, lty = 6)
+lines(tt, s2_500$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 2: Misspecify Censoring Model (n = 1000)")
+lines(tt, s2_1000$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s2_1000$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
+lines(tt, s2_1000$GC_curve, type = "s", col = "blue", lwd = 4, lty = 3)
+lines(tt, s2_1000$DR_StabW, type = "s", col = "purple", lwd = 3, lty = 6)
+lines(tt, s2_1000$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+# Scenario 3
+
+## True Curve
+
+integrand = function(t, z1, z2){
+  exp(-0.01 * t * exp(beta[1]*z1 + 1*I(z2^2))) * dnorm(z2)
+}
+
+true_surv_integr = numeric(nt)
+for (i in 1:nt){
+  true_surv_integr[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
+                               integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
+}
+
+load("results_s3.Rdata")
+
+s3_200 = out_s3$`n = 200`
+s3_500 = out_s3$`n = 500`
+s3_1000 = out_s3$`n = 1000`
+
+## Performance Metrics
+round(s3_200$performance_metrics, digits = 4)
+round(s3_500$performance_metrics, digits = 4)
+round(s3_1000$performance_metrics, digits = 4)
+
+## Plots
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 3: Misspecify Outcome Model (n = 200)")
+lines(tt, s3_200$KM_curve, type = "s", col = "red", lwd = 3, lty = 2)
+lines(tt, s3_200$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
+lines(tt, s3_200$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s3_200$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s3_200$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 3: Misspecify Outcome Model (n = 500)")
+lines(tt, s3_500$KM_curve, type = "s", col = "red", lwd = 3, lty = 2)
+lines(tt, s3_500$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
+lines(tt, s3_500$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s3_500$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s3_500$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 3, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 3: Misspecify Outcome Model (n = 1000)")
+lines(tt, s3_1000$KM_curve, type = "s", col = "red", lwd = 3, lty = 2)
+lines(tt, s3_1000$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
+lines(tt, s3_1000$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s3_1000$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s3_1000$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+# Scenario 4
+
+## True Curve
+
+integrand = function(t, z1, z2){
+  exp(-0.01 * t * exp(beta[1]*z1 + 1*I(z2^2))) * dnorm(z2)
+}
+
+true_surv_integr = numeric(nt)
+for (i in 1:nt){
+  true_surv_integr[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
+                               integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
+}
+
+load("results_s4.Rdata")
+
+s4_200 = out_s4$`n = 200`
+s4_500 = out_s4$`n = 500`
+s4_1000 = out_s4$`n = 1000`
+
+## Performance Metrics
+round(s4_200$performance_metrics, digits = 4)
+round(s4_500$performance_metrics, digits = 4)
+round(s4_1000$performance_metrics, digits = 4)
+
+## Plots
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 4a: Misspecify Both Models (n = 200)")
+lines(tt, s4_200$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s4_200$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s4_200$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s4_200$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s4_200$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 4a: Misspecify Both Models (n = 500)")
+lines(tt, s4_500$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s4_500$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s4_500$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s4_500$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s4_500$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 4a: Misspecify Both Models (n = 1000)")
+lines(tt, s4_1000$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s4_1000$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s4_1000$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s4_1000$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s4_1000$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+# Scenario 4b
+
+## True Curve
+
+integrand = function(t, z1, z2){
+  exp(-0.01 * t * exp(beta[1]*z1 + 2*(z2 > 0))) * dnorm(z2)
+}
+
+true_surv_integr = numeric(nt)
+for (i in 1:nt){
+  true_surv_integr[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
+                               integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
+}
+
+load("results_s4b.Rdata")
+
+s4b_200 = out_s4b$`n = 200`
+s4b_500 = out_s4b$`n = 500`
+s4b_1000 = out_s4b$`n = 1000`
+
+## Performance Metrics
+round(s4b_200$performance_metrics, digits = 4)
+round(s4b_500$performance_metrics, digits = 4)
+round(s4b_1000$performance_metrics, digits = 4)
+
+## Plots
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 4b: Misspecify Both Models (n = 200)")
+lines(tt, s4b_200$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s4b_200$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s4b_200$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s4b_200$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s4b_200$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 4b: Misspecify Both Models (n = 500)")
+lines(tt, s4b_500$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s4b_500$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s4b_500$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s4b_500$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s4b_500$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Scenario 4b: Misspecify Both Models (n = 1000)")
+lines(tt, s4b_1000$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
+lines(tt, s4b_1000$IPCW_curve, type = "s", col = "darkgreen", lwd = 3, lty = 4)
+lines(tt, s4b_1000$GC_curve, type = "s", col = "blue", lwd = 3, lty = 3)
+lines(tt, s4b_1000$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
+lines(tt, s4b_1000$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
+
+legend("topright", title = "Survival Curves", bty = "n", 
+       c("True theoretical", "Kaplan-Meier", 
+         "IPCW", "G-Computation", 
+         "AIPCW", "WGC"),
+       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
+       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
+
+# Final aggregated comparisons
+
+## S1
+metrics_s1_bias = data.frame('Value' = c(t(s1_200$performance_metrics[1, ]), 
+                                    t(s1_500$performance_metrics[1, ]),
+                                    t(s1_1000$performance_metrics[1, ])),
+                         'Method' = c(rownames(t(s1_200$performance_metrics[1, ])),
+                                      rownames(t(s1_500$performance_metrics[1, ])),
+                                      rownames(t(s1_1000$performance_metrics[1, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Absolute Bias", 15))
+metrics_s1_var = data.frame('Value' = c(t(s1_200$performance_metrics[2, ]), 
+                                    t(s1_500$performance_metrics[2, ]),
+                                    t(s1_1000$performance_metrics[2, ])),
+                         'Method' = c(rownames(t(s1_200$performance_metrics[2, ])),
+                                      rownames(t(s1_500$performance_metrics[2, ])),
+                                      rownames(t(s1_1000$performance_metrics[2, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("RMSE", 15))
+metrics_s1_rmse = data.frame('Value' = c(t(s1_200$performance_metrics[3, ]), 
+                                    t(s1_500$performance_metrics[3, ]),
+                                    t(s1_1000$performance_metrics[3, ])),
+                         'Method' = c(rownames(t(s1_200$performance_metrics[3, ])),
+                                      rownames(t(s1_500$performance_metrics[3, ])),
+                                      rownames(t(s1_1000$performance_metrics[3, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Area Between the Curves", 15))
+metrics_s1_area = data.frame('Value' = c(t(s1_200$performance_metrics[4, ]), 
+                                    t(s1_500$performance_metrics[4, ]),
+                                    t(s1_1000$performance_metrics[4, ])),
+                         'Method' = c(rownames(t(s1_200$performance_metrics[4, ])),
+                                      rownames(t(s1_500$performance_metrics[4, ])),
+                                      rownames(t(s1_1000$performance_metrics[4, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Variance", 15))
+
+metrics_s1 = rbind(metrics_s1_bias, metrics_s1_var, metrics_s1_rmse, metrics_s1_area)
+
+metrics_s1$n = as.factor(metrics_s1$n)
+metrics_s1$Method = factor(metrics_s1$Method, levels = c("KM", "IPCW", "GC", "AIPCW", "WGC"),
+                                              labels = c("KM", "IPCW", "GC", "AIPCW", "WGC"))
+metrics_s1$Metric = as.factor(metrics_s1$Metric)
+
+### I) GC
+ggplot(data = metrics_s1[-which(metrics_s1$Method %in% c("AIPCW", "WGC")), ], aes(x = n, y = Value, col = Method, shape = Method)) +
+    geom_point(size = 2.5, position = position_dodge(width = 0.3)) + 
+    facet_wrap(vars(Metric), scales = "free", dir = "v") +
+    scale_shape_manual(values = c(15, 16, 18, 17, 8)) +
+    scale_color_manual(values = c("#F8766D", "#00BA38", "#619CFF", "#A835D1", "#F79C5E")) +
+    xlab("Sample size (n)") +
+    ylab(NULL) +
+    ggtitle("Scenario 1: Correctly Specified Models") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.grid.major = element_line(color = "lightgrey", linewidth = 0.3),
+          axis.ticks = element_line(color = "black"),
+          strip.background = element_rect(fill = "lightgrey", color = "lightgrey"))
+
+### II) DR
+ggplot(data = metrics_s1, aes(x = n, y = Value, col = Method, shape = Method)) +
+    geom_point(size = 2.5, position = position_dodge(width = 0.3)) + 
+    facet_wrap(vars(Metric), scales = "free", dir = "v") +
+    scale_shape_manual(values = c(15, 16, 18, 17, 8)) +
+    scale_color_manual(values = c("#F8766D", "#00BA38", "#619CFF", "#A835D1", "#F79C5E")) +
+    xlab("Sample size (n)") +
+    ylab(NULL) +
+    ggtitle("Scenario 1: Correctly Specified Models") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.grid.major = element_line(color = "lightgrey", linewidth = 0.3),
+          axis.ticks = element_line(color = "black"),
+          strip.background = element_rect(fill = "lightgrey", color = "lightgrey"))
+
+## S2
+metrics_s2_bias = data.frame('Value' = c(t(s2b_200$performance_metrics[1, ]), 
+                                    t(s2b_500$performance_metrics[1, ]),
+                                    t(s2b_1000$performance_metrics[1, ])),
+                         'Method' = c(rownames(t(s2b_200$performance_metrics[1, ])),
+                                      rownames(t(s2b_500$performance_metrics[1, ])),
+                                      rownames(t(s2b_1000$performance_metrics[1, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Absolute Bias", 15))
+metrics_s2_var = data.frame('Value' = c(t(s2b_200$performance_metrics[2, ]), 
+                                    t(s2b_500$performance_metrics[2, ]),
+                                    t(s2b_1000$performance_metrics[2, ])),
+                         'Method' = c(rownames(t(s2b_200$performance_metrics[2, ])),
+                                      rownames(t(s2b_500$performance_metrics[2, ])),
+                                      rownames(t(s2b_1000$performance_metrics[2, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("RMSE", 15))
+metrics_s2_rmse = data.frame('Value' = c(t(s2b_200$performance_metrics[3, ]), 
+                                    t(s2b_500$performance_metrics[3, ]),
+                                    t(s2b_1000$performance_metrics[3, ])),
+                         'Method' = c(rownames(t(s2b_200$performance_metrics[3, ])),
+                                      rownames(t(s2b_500$performance_metrics[3, ])),
+                                      rownames(t(s2b_1000$performance_metrics[3, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Area Between the Curves", 15))
+metrics_s2_area = data.frame('Value' = c(t(s2b_200$performance_metrics[4, ]), 
+                                    t(s2b_500$performance_metrics[4, ]),
+                                    t(s2b_1000$performance_metrics[4, ])),
+                         'Method' = c(rownames(t(s2b_200$performance_metrics[4, ])),
+                                      rownames(t(s2b_500$performance_metrics[4, ])),
+                                      rownames(t(s2b_1000$performance_metrics[4, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Variance", 15))
+
+metrics_s2 = rbind(metrics_s2_bias, metrics_s2_var, metrics_s2_rmse, metrics_s2_area)
+
+metrics_s2$n = as.factor(metrics_s2$n)
+metrics_s2$Method = factor(metrics_s2$Method, levels = c("KM", "IPCW", "GC", "AIPCW", "WGC"),
+                                              labels = c("KM", "IPCW", "GC", "AIPCW", "WGC"))
+metrics_s2$Metric = as.factor(metrics_s2$Metric)
+
+ggplot(data = metrics_s2, aes(x = n, y = Value, col = Method, shape = Method)) +
+    geom_point(size = 2.5, position = position_dodge(width = 0.3)) + 
+    facet_wrap(vars(Metric), scales = "free", dir = "v") +
+    scale_shape_manual(values = c(15, 16, 18, 17, 8)) +
+    scale_color_manual(values = c("#F8766D", "#00BA38", "#619CFF", "#A835D1", "#F79C5E")) +
+    xlab("Sample size (n)") +
+    ylab(NULL) +
+    ggtitle("Scenario 2: Misspecify Censoring Model") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.grid.major = element_line(color = "lightgrey", linewidth = 0.3),
+          axis.ticks = element_line(color = "black"),
+          strip.background = element_rect(fill = "lightgrey", color = "lightgrey"))
+
+## S3
+metrics_s3_bias = data.frame('Value' = c(t(s3_200$performance_metrics[1, ]), 
+                                    t(s3_500$performance_metrics[1, ]),
+                                    t(s3_1000$performance_metrics[1, ])),
+                         'Method' = c(rownames(t(s3_200$performance_metrics[1, ])),
+                                      rownames(t(s3_500$performance_metrics[1, ])),
+                                      rownames(t(s3_1000$performance_metrics[1, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Absolute Bias", 15))
+metrics_s3_var = data.frame('Value' = c(t(s3_200$performance_metrics[2, ]), 
+                                    t(s3_500$performance_metrics[2, ]),
+                                    t(s3_1000$performance_metrics[2, ])),
+                         'Method' = c(rownames(t(s3_200$performance_metrics[2, ])),
+                                      rownames(t(s3_500$performance_metrics[2, ])),
+                                      rownames(t(s3_1000$performance_metrics[2, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("RMSE", 15))
+metrics_s3_rmse = data.frame('Value' = c(t(s3_200$performance_metrics[3, ]), 
+                                    t(s3_500$performance_metrics[3, ]),
+                                    t(s3_1000$performance_metrics[3, ])),
+                         'Method' = c(rownames(t(s3_200$performance_metrics[3, ])),
+                                      rownames(t(s3_500$performance_metrics[3, ])),
+                                      rownames(t(s3_1000$performance_metrics[3, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Area Between the Curves", 15))
+metrics_s3_area = data.frame('Value' = c(t(s3_200$performance_metrics[4, ]), 
+                                    t(s3_500$performance_metrics[4, ]),
+                                    t(s3_1000$performance_metrics[4, ])),
+                         'Method' = c(rownames(t(s3_200$performance_metrics[4, ])),
+                                      rownames(t(s3_500$performance_metrics[4, ])),
+                                      rownames(t(s3_1000$performance_metrics[4, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Variance", 15))
+
+metrics_s3 = rbind(metrics_s3_bias, metrics_s3_var, metrics_s3_rmse, metrics_s3_area)
+
+metrics_s3$n = as.factor(metrics_s3$n)
+metrics_s3$Method = factor(metrics_s3$Method, levels = c("KM", "IPCW", "GC", "AIPCW", "WGC"),
+                                              labels = c("KM", "IPCW", "GC", "AIPCW", "WGC"))
+metrics_s3$Metric = as.factor(metrics_s3$Metric)
+
+ggplot(data = metrics_s3, aes(x = n, y = Value, col = Method, shape = Method)) +
+    geom_point(size = 2.5, position = position_dodge(width = 0.3)) + 
+    facet_wrap(vars(Metric), scales = "free", dir = "v") +
+    scale_shape_manual(values = c(15, 16, 18, 17, 8)) +
+    scale_color_manual(values = c("#F8766D", "#00BA38", "#619CFF", "#A835D1", "#F79C5E")) +
+    xlab("Sample size (n)") +
+    ylab(NULL) +
+    ggtitle("Scenario 3: Misspecify Outcome Model") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.grid.major = element_line(color = "lightgrey", linewidth = 0.3),
+          axis.ticks = element_line(color = "black"),
+          strip.background = element_rect(fill = "lightgrey", color = "lightgrey"))
+
+## S4
+metrics_s4_bias = data.frame('Value' = c(t(s4_200$performance_metrics[1, ]), 
+                                    t(s4_500$performance_metrics[1, ]),
+                                    t(s4_1000$performance_metrics[1, ])),
+                         'Method' = c(rownames(t(s4_200$performance_metrics[1, ])),
+                                      rownames(t(s4_500$performance_metrics[1, ])),
+                                      rownames(t(s4_1000$performance_metrics[1, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Absolute Bias", 15))
+metrics_s4_var = data.frame('Value' = c(t(s4_200$performance_metrics[2, ]), 
+                                    t(s4_500$performance_metrics[2, ]),
+                                    t(s4_1000$performance_metrics[2, ])),
+                         'Method' = c(rownames(t(s4_200$performance_metrics[2, ])),
+                                      rownames(t(s4_500$performance_metrics[2, ])),
+                                      rownames(t(s4_1000$performance_metrics[2, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("RMSE", 15))
+metrics_s4_rmse = data.frame('Value' = c(t(s4_200$performance_metrics[3, ]), 
+                                    t(s4_500$performance_metrics[3, ]),
+                                    t(s4_1000$performance_metrics[3, ])),
+                         'Method' = c(rownames(t(s4_200$performance_metrics[3, ])),
+                                      rownames(t(s4_500$performance_metrics[3, ])),
+                                      rownames(t(s4_1000$performance_metrics[3, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Area Between the Curves", 15))
+metrics_s4_area = data.frame('Value' = c(t(s4_200$performance_metrics[4, ]), 
+                                    t(s4_500$performance_metrics[4, ]),
+                                    t(s4_1000$performance_metrics[4, ])),
+                         'Method' = c(rownames(t(s4_200$performance_metrics[4, ])),
+                                      rownames(t(s4_500$performance_metrics[4, ])),
+                                      rownames(t(s4_1000$performance_metrics[4, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Variance", 15))
+
+metrics_s4 = rbind(metrics_s4_bias, metrics_s4_var, metrics_s4_rmse, metrics_s4_area)
+
+metrics_s4$n = as.factor(metrics_s4$n)
+metrics_s4$Method = factor(metrics_s4$Method, levels = c("KM", "IPCW", "GC", "AIPCW", "WGC"),
+                                              labels = c("KM", "IPCW", "GC", "AIPCW", "WGC"))
+metrics_s4$Metric = as.factor(metrics_s4$Metric)
+
+ggplot(data = metrics_s4, aes(x = n, y = Value, col = Method, shape = Method)) +
+    geom_point(size = 2.5, position = position_dodge(width = 0.3)) + 
+    facet_wrap(vars(Metric), scales = "free", dir = "v") +
+    scale_shape_manual(values = c(15, 16, 18, 17, 8)) +
+    scale_color_manual(values = c("#F8766D", "#00BA38", "#619CFF", "#A835D1", "#F79C5E")) +
+    xlab("Sample size (n)") +
+    ylab(NULL) +
+    ggtitle("Scenario 4a: Misspecify Both Models") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.grid.major = element_line(color = "lightgrey", linewidth = 0.3),
+          axis.ticks = element_line(color = "black"),
+          strip.background = element_rect(fill = "lightgrey", color = "lightgrey"))
+
+## S4b
+metrics_s4b_bias = data.frame('Value' = c(t(s4b_200$performance_metrics[1, ]), 
+                                    t(s4b_500$performance_metrics[1, ]),
+                                    t(s4b_1000$performance_metrics[1, ])),
+                         'Method' = c(rownames(t(s4b_200$performance_metrics[1, ])),
+                                      rownames(t(s4b_500$performance_metrics[1, ])),
+                                      rownames(t(s4b_1000$performance_metrics[1, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Absolute Bias", 15))
+metrics_s4b_var = data.frame('Value' = c(t(s4b_200$performance_metrics[2, ]), 
+                                    t(s4b_500$performance_metrics[2, ]),
+                                    t(s4b_1000$performance_metrics[2, ])),
+                         'Method' = c(rownames(t(s4b_200$performance_metrics[2, ])),
+                                      rownames(t(s4b_500$performance_metrics[2, ])),
+                                      rownames(t(s4b_1000$performance_metrics[2, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("RMSE", 15))
+metrics_s4b_rmse = data.frame('Value' = c(t(s4b_200$performance_metrics[3, ]), 
+                                    t(s4b_500$performance_metrics[3, ]),
+                                    t(s4b_1000$performance_metrics[3, ])),
+                         'Method' = c(rownames(t(s4b_200$performance_metrics[3, ])),
+                                      rownames(t(s4b_500$performance_metrics[3, ])),
+                                      rownames(t(s4b_1000$performance_metrics[3, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Area Between the Curves", 15))
+metrics_s4b_area = data.frame('Value' = c(t(s4b_200$performance_metrics[4, ]), 
+                                    t(s4b_500$performance_metrics[4, ]),
+                                    t(s4b_1000$performance_metrics[4, ])),
+                         'Method' = c(rownames(t(s4b_200$performance_metrics[4, ])),
+                                      rownames(t(s4b_500$performance_metrics[4, ])),
+                                      rownames(t(s4b_1000$performance_metrics[4, ]))),
+                         'n' = c(rep(200, 5),
+                                 rep(500, 5),
+                                 rep(1000, 5)),
+                         'Metric' = rep("Variance", 15))
+
+metrics_s4b = rbind(metrics_s4b_bias, metrics_s4b_var, metrics_s4b_rmse, metrics_s4b_area)
+
+metrics_s4b$n = as.factor(metrics_s4b$n)
+metrics_s4b$Method = factor(metrics_s4b$Method, levels = c("KM", "IPCW", "GC", "AIPCW", "WGC"),
+                                              labels = c("KM", "IPCW", "GC", "AIPCW", "WGC"))
+metrics_s4b$Metric = as.factor(metrics_s4b$Metric)
+
+ggplot(data = metrics_s4b, aes(x = n, y = Value, col = Method, shape = Method)) +
+    geom_point(size = 2.5, position = position_dodge(width = 0.3)) + 
+    facet_wrap(vars(Metric), scales = "free", dir = "v") +
+    scale_shape_manual(values = c(15, 16, 18, 17, 8)) +
+    scale_color_manual(values = c("#F8766D", "#00BA38", "#619CFF", "#A835D1", "#F79C5E")) +
+    xlab("Sample size (n)") +
+    ylab(NULL) +
+    ggtitle("Scenario 4b: Misspecify Both Models") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.grid.major = element_line(color = "lightgrey", linewidth = 0.3),
+          axis.ticks = element_line(color = "black"),
+          strip.background = element_rect(fill = "lightgrey", color = "lightgrey"))
+
+
+
