@@ -1,40 +1,25 @@
----
-title: "Thesis"
-subtitle: 'Methods Comparison: Misspecified models & Double Robust Estimator'
-author: "Vasiliki Gkika"
-date: "`r format(Sys.Date(), '%d-%m-%Y')`"
-output: pdf_document
----
-
-```{r include=FALSE}
-options(scipen = 999)
-options(error = NULL)
 ```
-
-```{r}
 library(survival)
 library(ipw)
 library(dplyr) |> suppressPackageStartupMessages()
 library(matrixStats) |> suppressPackageStartupMessages()
 
+options(scipen = 999)
+options(error = NULL)
 set.seed(2024)
-```
+
 
 # Set parameters for all MC simulations
 
-```{r}
 M = 200 # MC simulations
-#n = 800 # sample size for each MC iteration
 N = 10^6 # sample size for big dataset 
 
 # time grid for all survival estimates
 tt = seq(0, 200, by = 0.1)
 nt = length(tt)
-```
 
 # Set parameters for all model scenarios
 
-```{r}
 # baseline covariates
 treat = sample(c(0, 1), size = N, replace = T, prob = c(0.5, 0.5)) # not treated (treat = 0)
                                                                    # treated (treat = 1)
@@ -47,17 +32,10 @@ lc = 0.02; phi = c(1, 1.5) # strong dependency
 
 u1 = runif(N, 0, 1)
 u2 = runif(N, 0, 1)
-```
 
 # Main function: initialize storing elements, apply methods, compute performance metrics and curves
+-   Input: "true" generated data (from which we sample at each MC iteration), "true" underlying survival curve (with which we compare the derived estimated curves at each MC iteration) and the varying sample size of the population
 
--   **Input:** "true" generated data (from which we sample at each MC iteration) and "true" underlying curve (with which we compute the performance metrics at each MC iteration)
--   **Output:** list with performance metrics and estimated KM curve, IPCW curve & GC curve
-
-- **Performance Metrics:** Absolute Bias summarizes the average pointwise error between the estimated survival curve and the true curve. This metric can remain low if the DR estimator follows the true curve closely in most places. 
-However, the ABC (calculated using the trapezoid rule) measures the accumulated error over the entire time range. If the DR curve deviates significantly from the true curve at specific intervals (even if the deviations are localized), the accumulated error could be high. ABC penalizes large deviations over time.
-
-```{r}
 main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
   
   # list of lists for the output of each sample size
@@ -68,7 +46,7 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
   
   for (ni in 1:length(sample_size)){
       n = sample_size[ni]
-      print(n)
+
       # censoring percentage for each MC simulation at each misspecification case
       censoring = numeric(M)
       
@@ -79,8 +57,8 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       KM = matrix(NA, nrow = M, ncol = nt)
       IPCW = matrix(NA, nrow = M, ncol = nt)
       GC = matrix(NA, nrow = M, ncol = nt)
-      DR_Stab = matrix(NA, nrow = M, ncol = nt)
-      DR_WGC = matrix(NA, nrow = M, ncol = nt)
+      AIPCW = matrix(NA, nrow = M, ncol = nt)
+      WGC = matrix(NA, nrow = M, ncol = nt)
       
       # performance metrics for each MC simulation 
       KM_metrics = matrix(NA, nrow = M, ncol = 3)
@@ -92,18 +70,16 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       GC_metrics = matrix(NA, nrow = M, ncol = 3)
       colnames(GC_metrics) = c("Absolute Bias", #"Variance", 
                                "RMSE", "Area Between Curves") 
-      DR_metrics_Stab = matrix(NA, nrow = M, ncol = 3)
-      colnames(DR_metrics_Stab) = c("Absolute Bias", #"Variance",
-                               "RMSE", "Area Between Curves")
+      DR_metrics_AIPCW = matrix(NA, nrow = M, ncol = 3)
+      colnames(DR_metrics_AIPCW) = c("Absolute Bias", #"Variance",
+                                     "RMSE", "Area Between Curves")
       DR_metrics_WGC = matrix(NA, nrow = M, ncol = 3)
       colnames(DR_metrics_WGC) = c("Absolute Bias", #"Variance", 
-                                "RMSE", "Area Between Curves")
+                                   "RMSE", "Area Between Curves")
       
       skip = 0
       # MC simulations
-      for (i in 1:M){
-        print(i)
-        
+      for (i in 1:M){     
         # Re-sampling from the "real" data set
         sampled_ids = sample(1:nrow(true_data), size = n, replace = T)
         data = true_data[sampled_ids, ]
@@ -120,8 +96,6 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       
         # KM performance metrics
         KM_metrics[i, ] = c(mean(abs(KM_surv - true_curve)), 
-                            #var(KM_surv - true_curve),
-                            #var(KM_surv),
                             sqrt(mean((KM_surv - true_curve)^2)),
                             geiger:::.area.between.curves(tt, true_curve, KM_surv, 
                                                           xrange = c(0, max(tt))))
@@ -208,8 +182,6 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       
         # IPCW metrics
         IPCW_metrics[i, ] = c(mean(abs(survIPCW - true_curve)),
-                              #var(survIPCW),
-                              #var(survIPCW - true_curve),
                               sqrt(mean((survIPCW - true_curve)^2)),
                               geiger:::.area.between.curves(tt, true_curve, survIPCW, 
                                                             xrange = c(0, max(tt))))
@@ -219,8 +191,7 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
         # Step 1: Fit Cox model to the whole population for time to event
         cox_model = coxph(Surv(Tobs, d) ~ treatment + ageZ, data = data)
       
-        # Step 2: Estimate individual survival probabilities at each event time point 
-        # based on the cox model 
+        # Step 2: Estimate individual survival probabilities at each event time point based on the cox model 
         fit_g = survfit(cox_model, newdata = data)
       
         # estimate individual survival probabilities at the time grid
@@ -233,8 +204,6 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       
         # GC metrics 
         GC_metrics[i, ] = c(mean(abs(surv_g - true_curve)),
-                            #var(surv_g),
-                            #var(surv_g - true_curve),
                             sqrt(mean((surv_g - true_curve)^2)),                     
                             geiger:::.area.between.curves(tt, true_curve, surv_g, 
                                                           xrange = c(0, max(tt))))
@@ -246,12 +215,10 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
         fit_g_ext_dr = summary(fit_g_dr, times = tt, extend = TRUE)$surv
         surv_g_dr = rowMeans(fit_g_ext_dr)
         
-        DR_WGC[i, ] = surv_g_dr
+        WGC[i, ] = surv_g_dr
         
         # metrics
         DR_metrics_WGC[i, ] = c(mean(abs(surv_g_dr - true_curve)),
-                                #var(surv_g_dr),
-                                #var(surv_g_dr - true_curve),
                                 sqrt(mean((surv_g_dr - true_curve)^2)),                     
                                 geiger:::.area.between.curves(tt, true_curve, surv_g_dr, 
                                                               xrange = c(0, max(tt))))
@@ -263,10 +230,10 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
         
         # fit Cox model for time to censoring
         data$dC = 1 - data$d
-        cox_cens = coxph(Surv(Tobs, dC) ~ treatment + ageZ, data = data) ##### computing time reduction
-        survfit_cens = survfit(cox_cens, newdata = data) ##### computing time reduction
+        cox_cens = coxph(Surv(Tobs, dC) ~ treatment + ageZ, data = data) 
+        survfit_cens = survfit(cox_cens, newdata = data) 
         weight_ext = summary(survfit_cens, times = tt)
-        weights_aggreg = weight_ext$surv ### P(uncensored) e (0,1) ## K
+        weights_aggreg = weight_ext$surv ### P(uncensored) 
         
         cox_cens_marginal = coxph(Surv(Tobs, dC) ~ 1, data = data)
         survfit_cens_marginal = survfit(cox_cens_marginal)
@@ -275,7 +242,6 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
         # stabilized IPCW
         stabilized_weights = weights0 / weights_aggreg
         
-        # estimate the probability of being uncensored for every subject at each time point
         b = 0
         for(j in 1:nrow(data)){
           idj = data[j, "id"]
@@ -287,7 +253,7 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
             DR_df[(b*nt + 1):(b*nt + nt), "d"] = 0
             DR_df[(b*nt + 1):(b*nt + nt), "dC"] = 0
           } else {
-            ind = which(abs(tt - as.numeric(time_round)) < 1e-6) ##### computing time reduction
+            ind = which(abs(tt - as.numeric(time_round)) < 1e-6)
           
             # did the event happen before or after `time`?
             if (Tobserved < time_round){
@@ -328,8 +294,7 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
             DR_df[(b*nt + 1):(b*nt + nl), "pi"] = weights 
             DR_df[(b*nt + 1):(b*nt + nl), "pi_stab"] = weights_stab
             
-            # for these time points: there is no one left alive or uncensored  
-            # (won't be used in the calculation of the DR estimator anyway)
+            # for these time points: there is no one left alive or uncensored (won't be used in the calculation of the DR estimator anyway)
             DR_df[(b*nt + nl + 1):(b*nt + nt), "pi"] = tail(weights, n = 1) 
             DR_df[(b*nt + nl + 1):(b*nt + nt), "pi_stab"] = tail(weights_stab, n = 1)
           } else {
@@ -347,22 +312,20 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
         DR_df[which(DR_df$pi == 0 | is.na(DR_df$pi)), "pi"] = 10e-50
         DR_df[which(DR_df$pi_stab == 0 | is.na(DR_df$pi_stab)), "pi_stab"] = 10e-50
         
-        # Compute the DR_Stab curve in a grouped manner
+        # Compute the AIPCW curve in a grouped manner
         
         DR_curve_df = DR_df |>
-            group_by(time) |> ##### computing time reduction
+            group_by(time) |>
             summarize(DRcurve = mean((((dC == 0) & (d == 0) * Z) / pi_stab) - (((dC == 0) / pi_stab) - 1) * mu * Z))
     
-        DR_stab_curve = DR_curve_df$DRcurve
+        AIPCW_curve = DR_curve_df$DRcurve
     
-        DR_Stab[i, ] = DR_stab_curve
+        AIPCW[i, ] = AIPCW_curve
         
         # DR performance metrics
-        DR_metrics_Stab[i, ] = c(mean(abs(DR_stab_curve - true_curve)),
-                                 #var(DR_stab_curve),
-                                 #var(DR_stab_curve - true_curve),
-                                 sqrt(mean((DR_stab_curve - true_curve)^2)),
-                                 geiger:::.area.between.curves(tt, true_curve, DR_stab_curve,
+        DR_metrics_AIPCW[i, ] = c(mean(abs(AIPCW_curve - true_curve)),
+                                 sqrt(mean((AIPCW_curve - true_curve)^2)),
+                                 geiger:::.area.between.curves(tt, true_curve, AIPCW_curve,
                                                                xrange = c(0, max(tt))))
       }
       
@@ -382,19 +345,19 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
       GC_Metrics = colMeans(GC_metrics, na.rm = TRUE)
       GC_Metrics_final = c(GC_Metrics, 'Variance' = mean(colVars(GC, na.rm = TRUE), na.rm = TRUE))
       
-      DR_curve_Stab = colMeans(DR_Stab, na.rm = TRUE)
-      DR_Metrics_Stab = colMeans(DR_metrics_Stab, na.rm = TRUE)
-      DR_Metrics_Stab_final = c(DR_Metrics_Stab, 'Variance' = mean(colVars(DR_Stab, na.rm = TRUE), na.rm = TRUE))
+      DR_curve_AIPCW = colMeans(AIPCW, na.rm = TRUE)
+      DR_Metrics_AIPCW = colMeans(DR_metrics_AIPCW, na.rm = TRUE)
+      DR_Metrics_AIPCW_final = c(DR_Metrics_AIPCW, 'Variance' = mean(colVars(AIPCW, na.rm = TRUE), na.rm = TRUE))
      
-      DR_curve_WGC = colMeans(DR_WGC, na.rm = TRUE)
+      DR_curve_WGC = colMeans(WGC, na.rm = TRUE)
       DR_Metrics_WGC = colMeans(DR_metrics_WGC, na.rm = TRUE)
-      DR_Metrics_WGC_final = c(DR_Metrics_WGC, 'Variance' = mean(colVars(DR_WGC, na.rm = TRUE), na.rm = TRUE))
+      DR_Metrics_WGC_final = c(DR_Metrics_WGC, 'Variance' = mean(colVars(WGC, na.rm = TRUE), na.rm = TRUE))
       
       # merge performance metrics
       final_metrics = cbind(KM_Metrics_final, IPCW_Metrics_final, GC_Metrics_final, 
-                            DR_Metrics_Stab_final, DR_Metrics_WGC_final)
+                            DR_Metrics_AIPCW_final, DR_Metrics_WGC_final)
       final_metrics = as.data.frame(final_metrics)
-      colnames(final_metrics) = c("KM", "IPCW", "G-C", "DR_StabW", "DR_WGC")
+      colnames(final_metrics) = c("KM", "IPCW", "G-C", "AIPCW", "WGC")
       
       # output
       out_n = list('censoring_percentage' = censoring_perc,
@@ -404,18 +367,17 @@ main = function(true_data, true_curve, sample_size = c(200, 500, 1000)){
                    'KM_curve' = KM_curve,
                    'IPCW_curve' = IPCW_curve,
                    'GC_curve' = GC_curve,
-                   'DR_StabW' = DR_curve_Stab,
-                   'DR_WGC' = DR_curve_WGC)
+                   'AIPCW' = DR_curve_AIPCW,
+                   'WGC' = DR_curve_WGC)
       
       out[[ni]] = out_n
   }
  return(out)
 }
-```
+
 
 # Scenario 1: Correctly Specified Models
 
-```{r}
 ## Generate Data ##
   
 x = (-log(u1))/(lx * exp(beta[1]*treat + beta[2]*ageZ))
@@ -439,53 +401,11 @@ for (i in 1:nt){
                                integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
 }
 
-tc1 = Sys.time()
 out_s1 = main(true_data, true_surv_integr)
-tc2 = Sys.time()
-tc2 - tc1
-```
 
-```{r}
-save(out_s1, file = "results_final/M200_v3/results_s1.RData")
-```
-
-## Plots and results
-
-```{r}
-paste0("Censoring percentage in Scenario 1: ", 
-       round(out_s1$censoring_percentage*100, digits = 2), "%")
-paste0("Number of skipped MC simulations in Scenario 1: ", out_s1$skips)
-paste0("Maximum Tobs in Scenario 1: ", round(out_s1$maxt, digits = 2))
-```
-
-
-```{r fig.width = 10, fig.height = 10}
-plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
-     xlab = "Time", ylab = "Survival Probability",
-     main = "Scenario 1: Correctly Specified Models")
-lines(tt, out_s1$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
-lines(tt, out_s1$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
-lines(tt, out_s1$GC_curve, type = "s", col = "blue", lwd = 2, lty = 3)
-lines(tt, out_s1$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
-lines(tt, out_s1$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
-
-legend("topright", title = "Survival Curves", bty = "n", 
-       c("True theoretical", "Kaplan-Meier", 
-         "IPCW", "G-Computation", 
-         "DR - StabW", "DR - WGC"),
-       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
-       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
-```
-
-```{r}
-out_s1$performance_metrics
-```
 
 # Scenario 2: Misspecify Censoring Model
 
--   Older individuals (ageZ > 0) have a higher hazard of getting censored and smaller censoring times. exp(5) = 148.4
-
-```{r}
 ## Generate Data ##
   
 x = (-log(u1))/(0.03 * exp(beta[1]*treat + beta[2]*ageZ))
@@ -509,53 +429,11 @@ for (i in 1:nt){
                                integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
 }
 
-tc1 = Sys.time()
-out_s2b = main(true_data, true_surv_integr)
-tc2 = Sys.time()
-tc2 - tc1
-```
+out_s2 = main(true_data, true_surv_integr)
 
-```{r}
-save(out_s2b, file = "results_final/M200_v3/results_s2b.RData")
-```
-
-## Plots and results
-
-```{r}
-paste0("Censoring percentage in Scenario 2: ", 
-       round(out_s2$censoring_percentage*100, digits = 2), "%")
-paste0("Number of skipped MC simulations in Scenario 2: ", out_s2$skips)
-paste0("Maximum Tobs in Scenario 2: ", round(out_s2$maxt, digits = 2))
-```
-
-```{r fig.width = 10, fig.height = 10}
-plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
-     xlab = "Time", ylab = "Survival Probability",
-     main = "Scenario 2: Misspecify Censoring Model")
-lines(tt, out_s2$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
-lines(tt, out_s2$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
-lines(tt, out_s2$GC_curve, type = "s", col = "blue", lwd = 2, lty = 3)
-lines(tt, out_s2$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
-lines(tt, out_s2$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
-
-legend("topright", title = "Survival Curves", bty = "n", 
-       c("True theoretical", "Kaplan-Meier", 
-         "IPCW", "G-Computation", 
-         "DR - StabW", "DR - WGC"),
-       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
-       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
-```
-
-```{r}
-out_s2$performance_metrics
-```
 
 # Scenario 3: Misspecify Outcome Model
 
-- quadratic term of age in X
-- quadratic term of age in C and **in the modelling of C**
-
-```{r}
 ## Generate Data ##
   
 x = (-log(u1))/(0.01 * exp(beta[1]*treat + 1*I(ageZ^2)))
@@ -579,55 +457,11 @@ for (i in 1:nt){
                                integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
 }
 
-tc1 = Sys.time()
 out_s3 = main(true_data, true_surv_integr)
-tc2 = Sys.time()
-tc2 - tc1
-```
 
-```{r}
-save(out_s3, file = "results_final/M200_v3/results_s3.RData")
-```
-
-## Plots and results
-
-```{r}
-paste0("Censoring percentage in Scenario 3: ", 
-       round(out_s3$censoring_percentage*100, digits = 2), "%")
-paste0("Number of skipped MC simulations in Scenario 3: ", out_s3$skips)
-paste0("Maximum Tobs in Scenario 3: ", round(out_s3$maxt, digits = 2))
-```
-
-The IPCW fails to capture the true survival curve in the beginning, even though the censoring model is correctly specified. It could be attributed to **sampling variability**. We expect to get rid of that by running a bigger number of simulations. 
-
-```{r fig.width = 10, fig.height = 10}
-plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
-     xlab = "Time", ylab = "Survival Probability",
-     main = "Scenario 3: Misspecify Outcome Model")
-lines(tt, out_s3$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
-lines(tt, out_s3$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
-lines(tt, out_s3$GC_curve, type = "s", col = "blue", lwd = 2, lty = 3)
-lines(tt, out_s3$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
-lines(tt, out_s3$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
-
-legend("topright", title = "Survival Curves", bty = "n", 
-       c("True theoretical", "Kaplan-Meier", 
-         "IPCW", "G-Computation", 
-         "DR - StabW", "DR - WGC"),
-       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
-       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
-```
-
-```{r}
-out_s3$performance_metrics
-```
 
 # Scenario 4: Misspecify Both Models
 
--   X event time: add quadratic term of age
--   C censoring time: add quadratic term of age
-
-```{r}
 ## Generate Data ##
 
 x = (-log(u1))/(0.01 * exp(beta[1]*treat + 1*(I(ageZ^2))))
@@ -651,52 +485,11 @@ for (i in 1:nt){
                                integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
 }
 
-tc1 = Sys.time()
 out_s4 = main(true_data, true_surv_integr)
-tc2 = Sys.time()
-tc2 - tc1
-```
 
-```{r}
-save(out_s4, file = "results_final/M200_v3/results_s4.RData")
-```
-
-## Plots and results
-
-```{r}
-paste0("Censoring percentage in Scenario 4: ", 
-       round(out_s4$censoring_percentage*100, digits = 2), "%")
-paste0("Number of skipped MC simulations in Scenario 4: ", out_s4$skips)
-paste0("Maximum Tobs in Scenario 4: ", round(out_s4$maxt, digits = 2))
-```
-
-When both models are misspecified, DR_Stab performs better than the individual methods!
-
-```{r fig.width = 10, fig.height = 10}
-plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
-     xlab = "Time", ylab = "Survival Probability",
-     main = "Scenario 4: Misspecify Both Models")
-lines(tt, out_s4$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
-lines(tt, out_s4$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
-lines(tt, out_s4$GC_curve, type = "s", col = "blue", lwd = 2, lty = 3)
-lines(tt, out_s4$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
-lines(tt, out_s4$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
-
-legend("topright", title = "Survival Curves", bty = "n", 
-       c("True theoretical", "Kaplan-Meier", 
-         "IPCW", "G-Computation", 
-         "DR - StabW", "DR - WGC"),
-       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
-       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
-```
-
-```{r}
-out_s4$performance_metrics
-```
 
 # Scenario 4b: Misspecify Both Models
 
-```{r}
 ## Generate Data ##
 
 x = (-log(u1))/(0.01 * exp(beta[1]*treat + 2*(ageZ > 0)))
@@ -720,43 +513,4 @@ for (i in 1:nt){
                                    integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
 }
 
-tc1 = Sys.time()
 out_s4b = main(true_data, true_surv_integr)
-tc2 = Sys.time()
-tc2 - tc1
-```
-
-```{r}
-save(out_s4b, file = "results_final/M200_v3/results_s4b.RData")
-```
-
-## Plots and results
-
-```{r}
-paste0("Censoring percentage in Scenario 4b: ", 
-       round(out_s4b$censoring_percentage*100, digits = 2), "%")
-paste0("Number of skipped MC simulations in Scenario 4b: ", out_s4b$skips)
-paste0("Maximum Tobs in Scenario 4b: ", round(out_s4b$maxt, digits = 2))
-```
-    
-```{r fig.width = 10, fig.height = 10}
-plot(tt, true_surv_integr, type = "s", lwd = 2, bty = "l", las = 1,
-     xlab = "Time", ylab = "Survival Probability",
-     main = "Scenario 4b: Misspecify Both Models")
-lines(tt, out_s4b$KM_curve, type = "s", col = "red", lwd = 2, lty = 2)
-lines(tt, out_s4b$IPCW_curve, type = "s", col = "darkgreen", lwd = 2, lty = 4)
-lines(tt, out_s4b$GC_curve, type = "s", col = "blue", lwd = 2, lty = 3)
-lines(tt, out_s4b$DR_StabW, type = "s", col = "purple", lwd = 2, lty = 6)
-lines(tt, out_s4b$DR_WGC, type = "s", col = "orange", lwd = 2, lty = 2)
-
-legend("topright", title = "Survival Curves", bty = "n", 
-       c("True theoretical", "Kaplan-Meier", 
-         "IPCW", "G-Computation", 
-         "DR - StabW", "DR - WGC"),
-       col = c("black", "red", "darkgreen", "blue", "purple", "orange"), 
-       lwd = 2, lty = c(1, 2, 4, 3, 6, 2))
-```
-
-```{r}
-out_s4b$performance_metrics
-```
