@@ -36,9 +36,9 @@ true_data = data.frame(id = 1:N, X = x, C = c, Tobs = t, d = d,
 
 # true curve: all patients have experienced the event of interest  
 true_fit = survfit(Surv(X, rep(1, nrow(true_data))) ~ 1, true_data) 
-true_surv_resamp = summary(true_fit, times = tt, extend = TRUE)$surv
+true_surv_emp = summary(true_fit, times = tt, extend = TRUE)$surv
 
-plot(tt, true_surv_resamp, type = "s", lwd = 2, las = 1, bty = "l",
+plot(tt, true_surv_emp, type = "s", lwd = 2, las = 1, bty = "l",
      xlab = "Time", ylab = "Survival Probability",
      main = "True Survival Curve (empirical)")
 
@@ -48,29 +48,29 @@ integrand = function(t, z1, z2){
   exp(-lx*t*exp(beta[1]*z1 + beta[2]*z2))*dnorm(z2)
 }
 
-true_surv_integr = numeric(nt)
+true_surv_theoret = numeric(nt)
 for (i in 1:nt){
-  true_surv_integr[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
+  true_surv_theoret[i] = 0.5*(integrate(integrand, t = tt[i], z1 = 1, lower = -5, upper = 5)$value + 
                                integrate(integrand, t = tt[i], z1 = 0, lower = -5, upper = 5)$value)
 }
 
-plot(tt, true_surv_integr, type = "s", lwd = 2, las = 1, bty = "l", 
+plot(tt, true_surv_theoret, type = "s", lwd = 2, las = 1, bty = "l", 
      lty = 2, col = "aquamarine2",
      xlab = "Time", ylab = "Survival Probability",
-     main = "True Survival Curve (theoretical)")
+     main = "True Survival Curve (empical)")
 
 ## 3. Overall Comparisons: Empirical vs Theoretical approach ##
 
-plot(tt, true_surv_resamp, type = "s", lwd = 3, las = 1, bty = "l",
+plot(tt, true_surv_emp, type = "s", lwd = 3, las = 1, bty = "l",
      xlab = "Time", ylab = "Survival Probability",
      main = "True Underlying Survival Curve")
-lines(tt, true_surv_integr, type = "s", lty = 2, lwd = 2, col = "aquamarine2")
+lines(tt, true_surv_theoret, type = "s", lty = 2, lwd = 2, col = "aquamarine2")
 legend("topright", c("Empirical", "Integration"),
         bty = "n", lwd = c(3, 2), lty = c(1, 2),
         col = c("black", "aquamarine2"))
 
-c(mean(abs(true_surv_integr - true_surv_resamp)),
-  var(true_surv_integr - true_surv_resamp),
-  sqrt(mean((true_surv_integr - true_surv_resamp)^2)),
-  geiger:::.area.between.curves(tt, true_surv_resamp, true_surv_integr, 
+c(mean(abs(true_surv_theoret - true_surv_emp)),
+  var(true_surv_theoret - true_surv_emp),
+  sqrt(mean((true_surv_theoret - true_surv_emp)^2)),
+  geiger:::.area.between.curves(tt, true_surv_emp, true_surv_theoret, 
                                 xrange = c(0, max(tt))))
